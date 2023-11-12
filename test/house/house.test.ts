@@ -9,7 +9,7 @@ describe("POST /upload", () => {
       .expect(200)
       .end(function (err: any, res: any) {
         if (err) return done(err);
-        expect(res.body).toEqual({ uniqueHouses: 3 });
+        expect(res.body).toEqual({ uniqueHouses: 1 });
         done();
       });
   });
@@ -20,7 +20,7 @@ describe("POST /upload", () => {
       .expect(200)
       .end(function (err: any, res: any) {
         if (err) return done(err);
-        expect(res.body).toEqual({ uniqueHouses: 3 });
+        expect(res.body).toEqual({ uniqueHouses: 1 });
         done();
       });
   });

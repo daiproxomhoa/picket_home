@@ -7,35 +7,20 @@ interface RowData {
   houseAddress: string;
 }
 
-const getTotalAddress = (mapHouses: RowData[]) => {
-  let uniqueHousesTmp = new Map<string, string[]>();
-
-  mapHouses.forEach((house: RowData) => {
-    const tmp = uniqueHousesTmp.get(house.houseId);
-    if (tmp) {
-      uniqueHousesTmp.set(house.houseId, [...tmp, house.houseAddress]);
-    } else {
-      let isExisted = false;
-      uniqueHousesTmp.forEach((list, k) => {
-        if (
-          list.find(
-            (val) =>
-              val.includes(house.houseAddress) ||
-              house.houseAddress?.includes(val)
-          )
-        ) {
-          uniqueHousesTmp.set(k, [...list, house.houseAddress]);
-          isExisted = true;
+const getTotalAddress = (mapHouses: Map<string, string[]>) => {
+  mapHouses.forEach((addresses, houseId, map) => {
+    for (let i = 0; i < addresses.length; i++) {
+      const address = addresses[i];
+      map.forEach((add, id) => {
+        if (add.find((val) => val === address) && id !== houseId) {
+          map.set(id, [...(map.get(id) ?? []), ...addresses]);
+          map.delete(houseId);
+          return;
         }
       });
-      if (!isExisted) {
-        uniqueHousesTmp.set(house.houseId, [house.houseAddress]);
-      }
     }
   });
-  console.log("uniqueHousesTmp", uniqueHousesTmp);
-
-  return uniqueHousesTmp.size;
+  return mapHouses.size;
 };
 
 class HouseController {
@@ -48,24 +33,19 @@ class HouseController {
           .json({ error: "No file uploaded. Please upload a CSV file." });
       } else {
         const uniqueHouseCount = await new Promise((resolve, reject) => {
-          const uniqueHouses: RowData[] = [];
-
+          const uniqueHouses = new Map<string, string[]>();
           fs.createReadStream(filePath)
             .pipe(csvParser())
             .on("data", (row: RowData) => {
-              row.houseId && uniqueHouses.push(row);
+              if (row.houseId && row.houseAddress)
+                uniqueHouses.set(row.houseId, [
+                  ...(uniqueHouses.get(row.houseId) ?? []),
+                  row.houseAddress,
+                ]);
             })
             .on("end", () => {
               fs.unlinkSync(filePath); // Delete the uploaded file after processing
-              console.log("sd", uniqueHouses);
-
-              resolve(
-                getTotalAddress(
-                  uniqueHouses.sort(
-                    (a, b) => Number(a.houseId) - Number(b.houseId)
-                  )
-                )
-              );
+              resolve(getTotalAddress(uniqueHouses));
             })
             .on("error", (error) => {
               reject(error);
